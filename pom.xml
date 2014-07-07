@@ -1,9 +1,23 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.justinsb</groupId>
+
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>7</version>
+	</parent>
+
+
+	<groupId>at.molindo</groupId>
 	<artifactId>etcd-client</artifactId>
 	<version>0.1-SNAPSHOT</version>
+
+	<scm>
+		<connection>scm:git:git@github.com:molindo/jetcd.git</connection>
+		<developerConnection>scm:git:git@github.com:molindo/jetcd.git</developerConnection>
+		<url>git@github.com:molindo/jetcd.git</url>
+	</scm>
 
 	<properties>
 		<artifactTargetPath>${project.build.directory}</artifactTargetPath>
