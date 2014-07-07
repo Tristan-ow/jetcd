@@ -10,7 +10,7 @@
 
 	<groupId>at.molindo</groupId>
 	<artifactId>etcd-client</artifactId>
-	<version>0.1</version>
+	<version>0.2-SNAPSHOT</version>
 
 	<scm>
 		<connection>scm:git:git@github.com:molindo/jetcd.git</connection>
