@@ -19,6 +19,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.concurrent.FutureCallback;
 import org.apache.http.impl.nio.client.CloseableHttpAsyncClient;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.client.HttpAsyncClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
@@ -43,7 +44,10 @@ public class EtcdClient {
     static CloseableHttpAsyncClient buildDefaultHttpClient() {
         // TODO: Increase timeout??
         RequestConfig requestConfig = RequestConfig.custom().build();
-        CloseableHttpAsyncClient httpClient = HttpAsyncClients.custom().setDefaultRequestConfig(requestConfig).build();
+        HttpAsyncClientBuilder builder = HttpAsyncClients.custom().setDefaultRequestConfig(requestConfig);
+        builder.setMaxConnPerRoute(Integer.MAX_VALUE);
+        builder.setMaxConnTotal(Integer.MAX_VALUE);
+        CloseableHttpAsyncClient httpClient = builder.build();
         httpClient.start();
         return httpClient;
     }
