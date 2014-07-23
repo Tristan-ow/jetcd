@@ -6,11 +6,11 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.util.concurrent.ListenableFuture;
 
 public class SmokeTest {
 	String prefix;
@@ -97,7 +97,7 @@ public class SmokeTest {
 		String key = prefix + "/doesnotexist";
 
 		try {
-			/*EtcdResult result =*/ this.client.delete(key);
+			/* EtcdResult result = */this.client.delete(key);
 			Assert.fail();
 		} catch (EtcdClientException e) {
 			Assert.assertTrue(e.isEtcdError(100));
@@ -232,7 +232,47 @@ public class SmokeTest {
 	@Test
 	public void testGetVersion() throws Exception {
 		String version = this.client.getVersion();
-		Assert.assertTrue(version.startsWith("etcd 0."));
+		Assert.assertTrue(version.startsWith("etcd"));
 	}
 
+	@Test
+	public void testResponseMetadata() throws Exception {
+		String key = prefix + "/message";
+
+		long etcdIndex, raftIndex, raftTerm;
+
+		EtcdResult result;
+
+		result = this.client.set(key, "hello");
+
+		etcdIndex = result.etcdIndex;
+		raftIndex = result.raftIndex;
+		raftTerm = result.raftTerm;
+
+		Assert.assertTrue(etcdIndex > 0);
+		Assert.assertTrue(raftIndex > 0);
+		Assert.assertTrue(raftTerm >= 0);
+
+		result = this.client.get(key);
+
+		Assert.assertEquals(etcdIndex, result.etcdIndex);
+		Assert.assertTrue(raftIndex <= result.raftIndex);
+		Assert.assertTrue(raftTerm <= result.raftTerm);
+		raftIndex = result.raftIndex;
+		raftTerm = result.raftTerm;
+
+		result = this.client.set(key, "world");
+
+		Assert.assertTrue(etcdIndex < result.etcdIndex);
+		Assert.assertTrue(raftIndex < result.raftIndex);
+		Assert.assertTrue(raftTerm <= result.raftTerm);
+		etcdIndex = result.etcdIndex;
+		raftIndex = result.raftIndex;
+		raftTerm = result.raftTerm;
+
+		result = this.client.get(key);
+		Assert.assertEquals(etcdIndex, result.etcdIndex);
+		Assert.assertTrue(raftIndex <= result.raftIndex);
+		Assert.assertTrue(raftTerm <= result.raftTerm);
+	}
 }

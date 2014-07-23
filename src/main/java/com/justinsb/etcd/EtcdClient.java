@@ -1,5 +1,6 @@
 package com.justinsb.etcd;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -8,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -37,7 +39,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 
-public class EtcdClient {
+public class EtcdClient implements Closeable {
 	private static final Gson gson = new GsonBuilder().create();
 
 	private final CloseableHttpAsyncClient httpClient;
@@ -46,6 +48,7 @@ public class EtcdClient {
 	static CloseableHttpAsyncClient buildDefaultHttpClient() {
 		RequestConfig requestConfig = RequestConfig.custom().build();
 		HttpAsyncClientBuilder builder = HttpAsyncClients.custom().setDefaultRequestConfig(requestConfig);
+		// default is 2 per host which won't let us monitor multiple directories
 		builder.setMaxConnPerRoute(Integer.MAX_VALUE);
 		builder.setMaxConnTotal(Integer.MAX_VALUE);
 		CloseableHttpAsyncClient httpClient = builder.build();
@@ -57,7 +60,8 @@ public class EtcdClient {
 		this(baseUri, buildDefaultHttpClient());
 	}
 
-	public EtcdClient(final URI baseUri, final CloseableHttpAsyncClient httpClient) {
+	public EtcdClient(URI baseUri, CloseableHttpAsyncClient httpClient) {
+		this.httpClient = httpClient;
 		String uri = baseUri.toString();
 		if (!uri.endsWith("/")) {
 			uri += "/";
@@ -65,8 +69,6 @@ public class EtcdClient {
 		} else {
 			this.baseUri = baseUri;
 		}
-
-		this.httpClient = httpClient;
 	}
 
 	/**
@@ -254,6 +256,10 @@ public class EtcdClient {
 
 		EtcdResult result = parseEtcdResult(response.json);
 
+		result.etcdIndex = response.etcdIndex;
+		result.raftIndex = response.raftIndex;
+		result.raftTerm = response.raftTerm;
+
 		if (result.isError()) {
 			if (!contains(expectedErrorCodes, result.errorCode)) {
 				throw new EtcdClientException(result.message, result);
@@ -335,10 +341,14 @@ public class EtcdClient {
 	static class JsonResponse {
 		final String json;
 		final int httpStatusCode;
+		final long etcdIndex, raftIndex, raftTerm;
 
-		public JsonResponse(String json, int statusCode) {
+		public JsonResponse(String json, int statusCode, long etcdIndex, long raftIndex, long raftTerm) {
 			this.json = json;
 			this.httpStatusCode = statusCode;
+			this.etcdIndex = etcdIndex;
+			this.raftIndex = raftIndex;
+			this.raftTerm = raftTerm;
 		}
 
 	}
@@ -368,9 +378,25 @@ public class EtcdClient {
 				}
 			}
 
-			return new JsonResponse(json, statusCode);
+			final long etcdIndex = parseLongHeader(httpResponse.getFirstHeader("X-Etcd-Index"));
+			final long raftIndex = parseLongHeader(httpResponse.getFirstHeader("X-Raft-Index"));
+			final long raftTerm = parseLongHeader(httpResponse.getFirstHeader("X-Raft-Term"));
+
+			return new JsonResponse(json, statusCode, etcdIndex, raftIndex, raftTerm);
 		} finally {
 			close(httpResponse);
+		}
+	}
+
+	private static long parseLongHeader(Header header) {
+		return parseLongHeader(header, Long.MIN_VALUE);
+	}
+
+	private static long parseLongHeader(Header header, long dfl) {
+		if (header == null) {
+			return dfl;
+		} else {
+			return Long.parseLong(header.getValue());
 		}
 	}
 
@@ -438,4 +464,8 @@ public class EtcdClient {
 		}
 	}
 
+	@Override
+	public void close() throws IOException {
+		httpClient.close();
+	}
 }
