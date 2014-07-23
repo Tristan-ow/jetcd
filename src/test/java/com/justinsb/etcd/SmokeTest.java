@@ -1,6 +1,7 @@
 package com.justinsb.etcd;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -10,9 +11,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.justinsb.etcd.EtcdClient;
-import com.justinsb.etcd.EtcdClientException;
-import com.justinsb.etcd.EtcdResult;
 
 public class SmokeTest {
 	String prefix;
@@ -22,6 +20,17 @@ public class SmokeTest {
 	public void initialize() {
 		this.prefix = "/unittest-" + UUID.randomUUID().toString();
 		this.client = new EtcdClient(URI.create("http://127.0.0.1:4001/"));
+	}
+
+	@Test
+	public void testEtcdOffline() throws URISyntaxException {
+		EtcdClient client = new EtcdClient(new URI("http://unknowhost"));
+		try {
+			client.get("key");
+			Assert.fail();
+		} catch (EtcdClientException e) {
+			// what now?
+		}
 	}
 
 	@Test
@@ -145,12 +154,9 @@ public class SmokeTest {
 		Assert.assertNotNull(result.node);
 		Assert.assertEquals("f2", result.node.value);
 
-		ListenableFuture<EtcdResult> watchFuture = this.client.watch(key,
-				result.node.modifiedIndex + 1,
-				true);
+		ListenableFuture<EtcdResult> watchFuture = this.client.watch(key, result.node.modifiedIndex + 1, true);
 		try {
-			EtcdResult watchResult = watchFuture
-					.get(100, TimeUnit.MILLISECONDS);
+			EtcdResult watchResult = watchFuture.get(100, TimeUnit.MILLISECONDS);
 			Assert.fail("Subtree watch fired unexpectedly: " + watchResult);
 		} catch (TimeoutException e) {
 			// Expected
@@ -174,8 +180,7 @@ public class SmokeTest {
 			Assert.assertEquals("f1", watchResult.node.value);
 			Assert.assertEquals("set", watchResult.action);
 			Assert.assertNull(result.prevNode);
-			Assert.assertEquals(result.node.modifiedIndex,
-					watchResult.node.modifiedIndex);
+			Assert.assertEquals(result.node.modifiedIndex, watchResult.node.modifiedIndex);
 		}
 	}
 
