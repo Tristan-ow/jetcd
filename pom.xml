@@ -9,7 +9,7 @@
 
 	<groupId>at.molindo</groupId>
 	<artifactId>etcd-client</artifactId>
-	<version>0.1.1</version>
+	<version>0.1.2-SNAPSHOT</version>
 
 	<name>etcd Java client</name>
 	<description>Simple Java client to interact with CoreOS's etcd</description>
