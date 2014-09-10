@@ -9,6 +9,12 @@ public class EtcdClientException extends IOException {
 
 	final EtcdResult result;
 
+	public EtcdClientException(String message) {
+		super(message);
+		this.httpStatusCode = null;
+		this.result = null;
+	}
+
 	public EtcdClientException(String message, Throwable cause) {
 		super(message, cause);
 		this.httpStatusCode = null;
@@ -32,11 +38,11 @@ public class EtcdClientException extends IOException {
 	}
 
 	public boolean isHttpError(int httpStatusCode) {
-		return (this.httpStatusCode != null && httpStatusCode == this.httpStatusCode);
+		return this.httpStatusCode != null && httpStatusCode == this.httpStatusCode;
 	}
 
 	public boolean isEtcdError(int etcdCode) {
-		return (this.result != null && this.result.errorCode != null && etcdCode == this.result.errorCode);
+		return this.result != null && this.result.errorCode != null && etcdCode == this.result.errorCode;
 
 	}
 }

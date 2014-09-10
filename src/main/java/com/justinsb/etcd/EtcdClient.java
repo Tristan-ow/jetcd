@@ -219,9 +219,13 @@ public class EtcdClient implements Closeable {
 		ListenableFuture<JsonResponse> json = asyncExecuteJson(request, expectedHttpStatusCodes);
 		return Futures.transform(json, new AsyncFunction<JsonResponse, EtcdResult>() {
 			@Override
-			public ListenableFuture<EtcdResult> apply(JsonResponse json) throws Exception {
-				EtcdResult result = jsonToEtcdResult(json, expectedErrorCodes);
-				return Futures.immediateFuture(result);
+			public ListenableFuture<EtcdResult> apply(JsonResponse json) {
+				try {
+					EtcdResult result = jsonToEtcdResult(json, expectedErrorCodes);
+					return Futures.immediateFuture(result);
+				} catch (EtcdClientException e) {
+					return Futures.immediateFailedFuture(e);
+				}
 			}
 		});
 	}
@@ -250,8 +254,9 @@ public class EtcdClient implements Closeable {
 	}
 
 	private EtcdResult jsonToEtcdResult(JsonResponse response, int... expectedErrorCodes) throws EtcdClientException {
-		if (response == null || response.json == null) {
-			return null;
+		// if etcd goes down during watch(..) response.json will be ""
+		if (response == null || response.json == null || response.json.isEmpty()) {
+			throw new EtcdClientException("No response from etcd");
 		}
 
 		EtcdResult result = parseEtcdResult(response.json);
