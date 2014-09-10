@@ -168,7 +168,7 @@ public class EtcdClient implements Closeable {
 	/**
 	 * Watches the given subtree
 	 */
-	public ListenableFuture<EtcdResult> watch(String key, Long index, boolean recursive) throws EtcdClientException {
+	public ListenableFuture<EtcdResult> watch(String key, Long index, boolean recursive) {
 		String suffix = "?wait=true";
 		if (index != null) {
 			suffix += "&waitIndex=" + index;
@@ -215,7 +215,7 @@ public class EtcdClient implements Closeable {
 	}
 
 	protected ListenableFuture<EtcdResult> asyncExecute(HttpUriRequest request, int[] expectedHttpStatusCodes,
-			final int... expectedErrorCodes) throws EtcdClientException {
+			final int... expectedErrorCodes) {
 		ListenableFuture<JsonResponse> json = asyncExecuteJson(request, expectedHttpStatusCodes);
 		return Futures.transform(json, new AsyncFunction<JsonResponse, EtcdResult>() {
 			@Override
@@ -323,7 +323,7 @@ public class EtcdClient implements Closeable {
 	}
 
 	protected ListenableFuture<JsonResponse> asyncExecuteJson(HttpUriRequest request,
-			final int[] expectedHttpStatusCodes) throws EtcdClientException {
+			final int[] expectedHttpStatusCodes) {
 		ListenableFuture<HttpResponse> response = asyncExecuteHttp(request);
 
 		return Futures.transform(response, new AsyncFunction<HttpResponse, JsonResponse>() {
